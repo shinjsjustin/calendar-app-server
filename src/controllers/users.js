@@ -1,14 +1,5 @@
 const db = require('../db/db');
 
-const testAPI = async(req, res)=>{
-    try{
-        const [rows] = await db.execute('SELECT * FROM users');
-        res.status(200).json({rows: rows})
-    }catch (err){
-        console.error(err);
-        res.status(500).json({error: 'An error occured when users test'});
-    }
-}
 
 const createUser = async (req, res) =>{
     const { name, email, password } = req.body;
@@ -77,7 +68,6 @@ const getUserById = async (req,res) => {
 };
 
 module.exports = {
-    testAPI,
     createUser,
     getUserByLogin,
     checkEmail,
