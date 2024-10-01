@@ -1,75 +1,58 @@
 const db = require('../db/db');
-
+const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken');
 
 const createUser = async (req, res) =>{
     const { name, email, password } = req.body;
+    if(!email){
+        return res.status(400).json({error: 'Email is required'});
+    }
     try{
-        const [result] = await db.execute(
-            `INSERT INTO users (name, email, password) VALUES (?, ?, ?)`,
-            [name, email, password]
-        );
-        res.status(201).json({id: result.insertId, name, email});
+        const [rows] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+        if (rows.length == 0){
+            const hashedPassword = await bcrypt.hash(password, 10);
+            try{
+                const [result] = await db.execute(
+                    `INSERT INTO users (name, email, password) VALUES (?, ?, ?)`,
+                    [name, email, hashedPassword]
+                );
+                res.status(201).json({id: result.insertId, name, email});
+            }catch(e){
+                console.error(e)
+                res.status(500).json({error: 'An error occured when fetching user from email'});
+            }
+        } else {
+            res.status(409).json({error: 'User with email exists'})
+        }
+        
     }catch(err){
         console.error(err);
         res.status(500).json({error: 'An error occured while creating the user.'});
     }
 };
 
-const checkEmail = async (req,res) => {
-    const email = req.params.email;
-    // console.log("checkEmail: ", email)
-    if(!email){
-        return res.status(400).json({error: 'Email is required'});
-    }
-
-    try{
-        const [rows] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
-        if (rows.length == 0){
-            res.status(200).json({status: 'No User with that Email'})
-        } else {
-            res.status(202).json({status: 'User with email exists'})
-        }
-    }catch (err){
-        console.error(err);
-        res.status(500).json({error: 'An error occured when fetching user from email'});
-    }
-}
-
-const getUserByLogin = async (req,res) => {
+const userLogin = async(req, res)=>{
     const {email, password} = req.body;
+
     try{
-        const [rows] = await db.execute('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
-        if (rows.length == 0){
-            res.status(404).json({error: 'Credentials incorrect'})
-        } else if(rows.length > 1){
-            res.status(403).json({error: 'Multiple users'})
-        } else {
-            res.status(200).json(rows[0]);
+        const [rows] = await db.execute('SELECT * FROM users WHERE email = ?', email);
+        if(rows.length == 0){
+            return res.status(404).json({error: 'No users found with that email'});
         }
-    }catch (err){
-        console.error(err);
-        res.status(500).json({error: 'An error occured when logging in'});
+        
+        const isValidPassword = await bcrypt.compare(password, rows[0].password);
+        if(!isValidPassword){
+            return res.status(400).json({error: 'Invalid Password'});
+        }
+
+        const token = jwt.sign({email: rows[0].email}, process.env.JWT_SECRET, {expiresIn: '1h'});
+        res.json({message: 'Login Success', token});
+    }catch(err){
+
     }
 }
-
-const getUserById = async (req,res) => {
-    const { id } = req.params;
-    try {
-        const [rows] = await db.execute('SELECT * FROM users WHERE id = ?', [id]);
-        if (rows.length > 0) {
-            res.status(200).json(rows[0]);
-        } else {
-            res.status(404).json({ error: 'User not found.' });
-        }
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'An error occurred while retrieving the user.' });
-    }
-};
 
 module.exports = {
     createUser,
-    getUserByLogin,
-    checkEmail,
-    getUserById
+    userLogin,
 };
