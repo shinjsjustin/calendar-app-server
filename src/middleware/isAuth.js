@@ -4,7 +4,7 @@ const isAuth = (req, res, next) => {
     const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
 
     if(token == null){
-        return res.status(401).json({message: 'Token is NULL'});
+        res.status(401).json({message: 'Token is NULL'});
     }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) =>{
@@ -18,6 +18,4 @@ const isAuth = (req, res, next) => {
 
 
 
-module.exports = {
-    isAuth,
-}
+module.exports = isAuth

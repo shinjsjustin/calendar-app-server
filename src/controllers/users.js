@@ -33,22 +33,24 @@ const createUser = async (req, res) =>{
 
 const userLogin = async(req, res)=>{
     const {email, password} = req.body;
+    console.log("Email: ", email, "\nPassword: ", password)
 
     try{
-        const [rows] = await db.execute('SELECT * FROM users WHERE email = ?', email);
+        const [rows] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
         if(rows.length == 0){
-            return res.status(404).json({error: 'No users found with that email'});
+            res.status(404).json({error: 'No users found with that email'});
         }
         
         const isValidPassword = await bcrypt.compare(password, rows[0].password);
         if(!isValidPassword){
-            return res.status(400).json({error: 'Invalid Password'});
+            res.status(400).json({error: 'Invalid Password'});
         }
 
         const token = jwt.sign({email: rows[0].email}, process.env.JWT_SECRET, {expiresIn: '1h'});
-        res.json({message: 'Login Success', token});
+        res.status(200).send({message: 'Login Success', token});
     }catch(err){
-
+        console.error(err);
+        res.status(500).json({error: 'An internal error occured while logging in.'});
     }
 }
 
