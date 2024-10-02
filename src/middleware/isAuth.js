@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken')
 
 const isAuth = (req, res, next) => {
     const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
-
+    // console.log('isAuth token: ', token)
     if(token == null){
         res.status(401).json({message: 'Token is NULL'});
     }

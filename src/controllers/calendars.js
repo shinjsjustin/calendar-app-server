@@ -16,6 +16,7 @@ const createCalendar = async (req, res) =>{
 
 const getUserCalendars = async (req, res) =>{
     const {id} = req.params;
+    // console.log('getUserCalendars email: ', id)
     try {
         const [rows] = await db.execute('SELECT * FROM calendars WHERE user_id = ?', [id]);
         if (rows.length > 0) {
